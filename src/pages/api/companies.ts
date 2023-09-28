@@ -1,4 +1,6 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
+import type { Post } from '@prisma/client'
+import prisma from 'core/server/prisma'
 import { NextApiRequestTyped } from 'core/server/types'
 import { Company, companiesData, zodCategories } from 'models/company'
 import type { NextApiResponse } from 'next'
@@ -19,7 +21,10 @@ export type Response =
 // TODO: Pagination & infinite loading for mobile (with scroll to top on page change) - Middleware
 
 // Next.js endpoints accept all HTTP methods (GET, POST...)
-export default function handler(req: NextApiRequestTyped<Query>, res: NextApiResponse<Response>) {
+export default async function handler(
+	req: NextApiRequestTyped<Query>,
+	res: NextApiResponse<Response>
+) {
 	// TODO: Move to middleware and also .setHeader('message', error...)
 	const query = QuerySchema.parse(req.query)
 	if (!query) return res.status(400).send(undefined)
@@ -44,6 +49,19 @@ export default function handler(req: NextApiRequestTyped<Query>, res: NextApiRes
 			return found
 		})
 	}
+
+	//
+
+	const feed: Post[] = await prisma.post.findMany({
+		where: { published: true },
+		include: {
+			author: {
+				select: { name: true },
+			},
+		},
+	})
+
+	//
 
 	res.status(200).json(output)
 }
