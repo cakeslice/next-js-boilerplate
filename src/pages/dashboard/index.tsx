@@ -7,12 +7,45 @@ import { request, useApi, useQueryParams } from 'core/client/api'
 import { Desktop, Mobile } from 'core/client/components/MediaQuery'
 import { useDark } from 'core/client/hooks'
 import { Company, allCategories, categoryStyle } from 'models/company'
-import type { NextPage } from 'next'
 import { useTheme } from 'next-themes'
 import { Body as AddDataBody } from 'pages/api/add-data'
 import { Query as CompanyQuery, Response } from 'pages/api/companies'
 import { useEffect, useState } from 'react'
 import { Client } from 'react-hydration-provider'
+
+import { useLogout } from 'core/client/auth'
+import { auth } from 'core/server/auth'
+import type {
+	GetServerSidePropsContext,
+	GetServerSidePropsResult,
+	InferGetServerSidePropsType,
+} from 'next'
+
+export const getServerSideProps = async (
+	context: GetServerSidePropsContext
+): Promise<
+	GetServerSidePropsResult<{
+		userId: string
+		username: string
+	}>
+> => {
+	const authRequest = auth.handleRequest(context)
+	const session = await authRequest.validate()
+	if (!session) {
+		return {
+			redirect: {
+				destination: '/login',
+				permanent: false,
+			},
+		}
+	}
+	return {
+		props: {
+			userId: session.user.userId,
+			username: session.user.githubUsername,
+		},
+	}
+}
 
 const Filters = () => {
 	const { query, setQuery } = useQueryParams<CompanyQuery>()
@@ -40,30 +73,28 @@ const Filters = () => {
 
 			<div className='flex flex-wrap items-center' style={{ gap: 15 }}>
 				{allCategories.map((s) => (
-					<>
-						<Checkbox
-							key={s}
-							checked={query.categories?.includes(s) || false}
-							onChange={(e) => {
-								// TODO: Maybe with zod?
-								// Otherwise we need to do Array.isArray everytime...
-								let array = Array.isArray(query.categories)
-									? query.categories
-									: query.categories
-									? [query.categories]
-									: []
+					<Checkbox
+						key={s}
+						checked={query.categories?.includes(s) || false}
+						onChange={(e) => {
+							// TODO: Maybe with zod?
+							// Otherwise we need to do Array.isArray everytime...
+							let array = Array.isArray(query.categories)
+								? query.categories
+								: query.categories
+								? [query.categories]
+								: []
 
-								if (e.currentTarget.checked) array.push(s)
-								else array = array.filter((e) => e !== s)
+							if (e.currentTarget.checked) array.push(s)
+							else array = array.filter((e) => e !== s)
 
-								setQuery({ categories: array })
-							}}
-						>
-							<Chip variant='bordered' className={categoryStyle[s]}>
-								{s}
-							</Chip>
-						</Checkbox>
-					</>
+							setQuery({ categories: array })
+						}}
+					>
+						<Chip variant='bordered' className={categoryStyle[s]}>
+							{s}
+						</Chip>
+					</Checkbox>
 				))}
 			</div>
 		</>
@@ -87,15 +118,49 @@ const ThemeToggle = () => {
 	)
 }
 
-const Dashboard: NextPage = () => {
+const Row = ({ company }: { company: Company }) => {
+	const { dark } = useDark()
+
+	return (
+		<div className='desktop:contents mobile:border-1 mobile:border-primary mobile:p-4 rounded-lg'>
+			<div style={{ fontWeight: 500, opacity: dark ? 1 : 0.75 }}>{company.name}</div>
+
+			<Desktop>
+				<div className='flex' style={{ gap: 10 }}>
+					{company.categories.map((s) => (
+						<Chip className={categoryStyle[s]} variant='bordered' key={s}>
+							{s}
+						</Chip>
+					))}
+				</div>
+				<div>{company.city}</div>
+			</Desktop>
+
+			<div className='flex flex-col items-end desktop:hidden' style={{ gap: 10 }}>
+				<div>{company.city}</div>
+				<div className='flex justify-end' style={{ flexWrap: 'wrap', gap: 10 }}>
+					{company.categories.map((s) => (
+						<Chip className={categoryStyle[s]} key={s}>
+							{s}
+						</Chip>
+					))}
+				</div>
+			</div>
+		</div>
+	)
+}
+const Page = ({ username }: InferGetServerSidePropsType<typeof getServerSideProps>) => {
 	const [filtersOpen, setFiltersOpen] = useState(false)
 
 	const { query } = useQueryParams<CompanyQuery>()
 
-	const { data, isLoading } = useApi<Response, CompanyQuery, {}>(['companies', query])
+	const { data, isLoading } = useApi<Response, CompanyQuery, {}>({
+		path: 'companies',
+		query,
+	})
 
 	const sendData = async () => {
-		const [res, error] = await request<{ helloSuccess: string }, {}, AddDataBody>({
+		const { error } = await request<{ helloSuccess: string }, {}, AddDataBody>({
 			path: 'add-data',
 			body: {
 				hello: true,
@@ -104,13 +169,19 @@ const Dashboard: NextPage = () => {
 		if (error) alert(error.message)
 	}
 
+	const { logout } = useLogout()
+
 	return (
 		<PageWrapper>
 			<DashboardWrapper>
-				<div
-					className='flex flex-wrap justify-between items-center'
-					style={{ gap: '15px 30px' }}
-				>
+				<div className='flex gap-4'>
+					<div>Hello, {username}</div>
+					<Button onClick={logout}>Logout</Button>
+				</div>
+
+				<Spacer y={10} />
+
+				<div className='flex flex-wrap justify-between items-center gap-x-8 gap-y-4 '>
 					<Desktop>
 						<Filters />
 						<div className='flex gap-3'>
@@ -202,38 +273,4 @@ const Dashboard: NextPage = () => {
 	)
 }
 
-const Row = (props: { company: Company }) => {
-	const { dark } = useDark()
-
-	const c = props.company
-
-	return (
-		<div className='desktop:contents mobile:border-1 mobile:border-primary mobile:p-4 rounded-lg'>
-			<div style={{ fontWeight: 500, opacity: dark ? 1 : 0.75 }}>{c.name}</div>
-
-			<Desktop>
-				<div className='flex' style={{ gap: 10 }}>
-					{c.categories.map((s) => (
-						<Chip className={categoryStyle[s]} variant='bordered' key={s}>
-							{s}
-						</Chip>
-					))}
-				</div>
-				<div>{c.city}</div>
-			</Desktop>
-
-			<div className='flex flex-col items-end desktop:hidden' style={{ gap: 10 }}>
-				<div>{c.city}</div>
-				<div className='flex justify-end' style={{ flexWrap: 'wrap', gap: 10 }}>
-					{c.categories.map((s) => (
-						<Chip className={categoryStyle[s]} key={s}>
-							{s}
-						</Chip>
-					))}
-				</div>
-			</div>
-		</div>
-	)
-}
-
-export default Dashboard
+export default Page

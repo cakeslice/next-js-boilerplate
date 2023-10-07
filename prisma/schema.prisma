@@ -1,28 +1,59 @@
 generator client {
-  provider = "prisma-client-js"
+   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url = env("POSTGRES_PRISMA_URL") // uses connection pooling
-  directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+   provider  = "postgresql"
+   url       = env("POSTGRES_PRISMA_URL") // uses connection pooling
+   directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
 }
 
-model Post {
-  id        String     @default(cuid()) @id
-  title     String
-  content   String?
-  published Boolean @default(false)
-  author    User?   @relation(fields: [authorId], references: [id])
-  authorId  String?
-}
+// CREATE TABLE user (
+//		id VARCHAR(15) PRIMARY KEY,
+//		username VARCHAR(31) NOT NULL
+// );
+
+// CREATE TABLE user_session (
+//		id VARCHAR(127) PRIMARY KEY,
+//		user_id VARCHAR(15) NOT NULL,
+//		active_expires BIGINT NOT NULL,
+//		idle_expires BIGINT NOT NULL,
+//		FOREIGN KEY (user_id) REFERENCES user(id)
+// );
+
+// CREATE TABLE user_key (
+//		id VARCHAR(255) PRIMARY KEY,
+//		user_id VARCHAR(15) NOT NULL,
+//		hashed_password VARCHAR(255),
+//		FOREIGN KEY (user_id) REFERENCES user(id)
+// );
 
 model User {
-  id            String       @default(cuid()) @id
-  name          String?
-  email         String?   @unique
-  createdAt     DateTime  @default(now()) @map(name: "created_at")
-  updatedAt     DateTime  @updatedAt @map(name: "updated_at")
-  posts         Post[]
-  @@map(name: "users")
+   id       String @id @unique
+   /// GitHub username
+   username String @unique
+
+   UserSession UserSession[]
+   UserKey     UserKey[]
+}
+
+model UserSession {
+   id             String @id @unique
+   active_expires BigInt
+   idle_expires   BigInt
+
+   user    User   @relation(fields: [user_id], references: [id])
+   user_id String
+
+   @@index([user_id])
+}
+
+model UserKey {
+   id              String  @id @unique
+   hashed_password String?
+
+   user    User   @relation(fields: [user_id], references: [id])
+   user_id String
+
+   @@index([user_id])
 }
