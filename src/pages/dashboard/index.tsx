@@ -6,10 +6,14 @@ import DashboardWrapper from 'components/dashboard/DashboardWrapper'
 import { request, useApi, useQueryParams } from 'core/client/api'
 import { Desktop, Mobile } from 'core/client/components/MediaQuery'
 import { useDark } from 'core/client/hooks'
-import { Company, allCategories, categoryStyle } from 'models/company'
 import { useTheme } from 'next-themes'
 import { Body as AddDataBody } from 'pages/api/add-data'
-import { Query as CompanyQuery, Response } from 'pages/api/companies'
+import { Response as CategoriesResponse } from 'pages/api/categories'
+import {
+	Response as CompaniesResponse,
+	Query as CompanyQuery,
+	CompanyWithCategories,
+} from 'pages/api/companies'
 import { useEffect, useState } from 'react'
 import { Client } from 'react-hydration-provider'
 
@@ -53,6 +57,10 @@ const Filters = () => {
 	const [search, setSearch] = useState(query.search)
 	const debouncedSearch = useDebounce(search, 200)
 
+	const { data: categories } = useApi<CategoriesResponse, undefined, {}>({
+		path: 'categories',
+	})
+
 	useEffect(() => {
 		setQuery({ search: debouncedSearch })
 	}, [debouncedSearch])
@@ -72,10 +80,10 @@ const Filters = () => {
 			/>
 
 			<div className='flex flex-wrap items-center' style={{ gap: 15 }}>
-				{allCategories.map((s) => (
+				{categories?.map((s) => (
 					<Checkbox
-						key={s}
-						checked={query.categories?.includes(s) || false}
+						key={s.id}
+						checked={query.categories?.includes(s.name) || false}
 						onChange={(e) => {
 							// TODO: Maybe with zod?
 							// Otherwise we need to do Array.isArray everytime...
@@ -85,14 +93,14 @@ const Filters = () => {
 								? [query.categories]
 								: []
 
-							if (e.currentTarget.checked) array.push(s)
-							else array = array.filter((e) => e !== s)
+							if (e.currentTarget.checked) array.push(s.name)
+							else array = array.filter((e) => e !== s.name)
 
 							setQuery({ categories: array })
 						}}
 					>
-						<Chip variant='bordered' className={categoryStyle[s]}>
-							{s}
+						<Chip variant='bordered' className={s.style}>
+							{s.name}
 						</Chip>
 					</Checkbox>
 				))}
@@ -118,7 +126,7 @@ const ThemeToggle = () => {
 	)
 }
 
-const Row = ({ company }: { company: Company }) => {
+const Row = ({ company }: { company: CompanyWithCategories }) => {
 	const { dark } = useDark()
 
 	return (
@@ -128,8 +136,8 @@ const Row = ({ company }: { company: Company }) => {
 			<Desktop>
 				<div className='flex' style={{ gap: 10 }}>
 					{company.categories.map((s) => (
-						<Chip className={categoryStyle[s]} variant='bordered' key={s}>
-							{s}
+						<Chip className={s.style} variant='bordered' key={s.id}>
+							{s.name}
 						</Chip>
 					))}
 				</div>
@@ -140,8 +148,8 @@ const Row = ({ company }: { company: Company }) => {
 				<div>{company.city}</div>
 				<div className='flex justify-end' style={{ flexWrap: 'wrap', gap: 10 }}>
 					{company.categories.map((s) => (
-						<Chip className={categoryStyle[s]} key={s}>
-							{s}
+						<Chip className={s.style} key={s.id}>
+							{s.name}
 						</Chip>
 					))}
 				</div>
@@ -154,7 +162,11 @@ const Page = ({ username }: InferGetServerSidePropsType<typeof getServerSideProp
 
 	const { query } = useQueryParams<CompanyQuery>()
 
-	const { data, isLoading } = useApi<Response, CompanyQuery, {}>({
+	const {
+		data: companies,
+		refetch,
+		isLoading,
+	} = useApi<CompaniesResponse, CompanyQuery, {}>({
 		path: 'companies',
 		query,
 	})
@@ -190,9 +202,11 @@ const Page = ({ username }: InferGetServerSidePropsType<typeof getServerSideProp
 								color='primary'
 								onClick={async () => {
 									await sendData()
+
+									await refetch()
 								}}
 							>
-								Save
+								New
 							</Button>
 						</div>
 					</Desktop>
@@ -245,7 +259,7 @@ const Page = ({ username }: InferGetServerSidePropsType<typeof getServerSideProp
 					</div>
 
 					<Client>
-						{(isLoading || !data) && (
+						{(isLoading || !companies) && (
 							<div
 								style={{ minHeight: 100 }}
 								className='col-span-full flex items-center justify-center'
@@ -255,9 +269,9 @@ const Page = ({ username }: InferGetServerSidePropsType<typeof getServerSideProp
 						)}
 
 						{!isLoading &&
-							data &&
-							(data?.companies?.length > 0 ? (
-								data?.companies?.map((c) => <Row key={c.name} company={c} />)
+							companies &&
+							(companies?.length > 0 ? (
+								companies.map((c) => <Row key={c.name} company={c} />)
 							) : (
 								<div
 									style={{ minHeight: 100 }}

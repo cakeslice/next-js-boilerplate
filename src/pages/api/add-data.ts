@@ -13,11 +13,18 @@ export type Response =
 	  }
 	| undefined
 
-export default function handler(
+export default async function handler(
 	req: NextApiRequestTyped<undefined, Body>,
 	res: NextApiResponse<Response>
 ) {
 	if (!BodySchema.parse(req.body)) return res.status(400).send(undefined)
+
+	await prisma.company.create({
+		data: {
+			name: 'Company #' + Math.floor(Math.random() * 1000),
+			city: 'Tokyo',
+		},
+	})
 
 	let output: Response = { helloSuccess: 'Hello World!' }
 

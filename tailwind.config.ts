@@ -12,6 +12,12 @@ export const config: Config = {
 		'./src/**/*.{js,jsx,ts,tsx}',
 		'./node_modules/@nextui-org/theme/dist/**/*.{js,ts,jsx,tsx}',
 	],
+	safelist: [
+		{
+			pattern: /bg-(red|green|blue|orange|pink|cyan)-(300|700)/,
+			variants: ['dark'],
+		},
+	],
 	theme: {
 		extend: {
 			screens: breakpoints,

@@ -1,22 +1,19 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import type { Post } from '@prisma/client'
+import type { Category, Company } from '@prisma/client'
 import prisma from 'core/server/prisma'
 import { NextApiRequestTyped } from 'core/server/types'
-import { Company, companiesData, zodCategories } from 'models/company'
+import { zodQueryArray } from 'core/server/zod'
 import type { NextApiResponse } from 'next'
 import { z } from 'zod'
 
 const QuerySchema = z.object({
 	search: z.optional(z.string()),
-	categories: zodCategories,
+	categories: z.optional(zodQueryArray(z.string())),
 })
 export type Query = z.infer<typeof QuerySchema>
 
-export type Response =
-	| {
-			companies: Company[]
-	  }
-	| undefined
+export type CompanyWithCategories = Company & { categories: Category[] }
+export type Response = CompanyWithCategories[] | undefined
 
 // TODO: Pagination & infinite loading for mobile (with scroll to top on page change) - Middleware
 
@@ -29,39 +26,39 @@ export default async function handler(
 	const query = QuerySchema.parse(req.query)
 	if (!query) return res.status(400).send(undefined)
 
-	let output: Response = { companies: companiesData }
-
 	const search = query.search
-	if (search)
-		output.companies = output.companies.filter((c) =>
-			c.name.toLowerCase().includes(search.toLowerCase())
-		)
-
 	const categories = query.categories || []
-	if (categories && categories.length > 0) {
-		output.companies = output.companies.filter((c) => {
-			let found = false
 
-			c.categories.forEach((s) => {
-				if (categories.includes(s)) found = true
-			})
-
-			return found
-		})
-	}
-
-	//
-
-	const feed: Post[] = await prisma.post.findMany({
-		where: { published: true },
+	const foundCompanies = await prisma.company.findMany({
+		where: {
+			...(search && {
+				name: { contains: search?.toLowerCase(), mode: 'insensitive' },
+			}),
+			...(categories.length > 0 && {
+				categories: {
+					some: {
+						category: {
+							name: {
+								in: categories,
+							},
+						},
+					},
+				},
+			}),
+		},
 		include: {
-			author: {
-				select: { name: true },
+			categories: {
+				include: {
+					category: true,
+				},
 			},
 		},
 	})
 
-	//
+	let output: Response = foundCompanies.map((c) => ({
+		...c,
+		categories: c.categories.map((cat) => cat.category),
+	}))
 
 	res.status(200).json(output)
 }

@@ -57,3 +57,31 @@ model UserKey {
 
    @@index([user_id])
 }
+
+//
+
+model Category {
+   id        Int                     @id @default(autoincrement())
+   name      String                  @unique
+   style     String
+   companies CategoriesOnCompanies[]
+}
+
+model Company {
+   id         Int                     @id @default(autoincrement())
+   name       String                  @unique
+   logo       String?
+   city       String
+   categories CategoriesOnCompanies[]
+}
+
+model CategoriesOnCompanies {
+   company    Company  @relation(fields: [companyId], references: [id])
+   companyId  Int
+   category   Category @relation(fields: [categoryId], references: [id])
+   categoryId Int
+
+   assignedAt DateTime @default(now())
+
+   @@id([companyId, categoryId])
+}
