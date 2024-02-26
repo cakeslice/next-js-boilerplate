@@ -9,14 +9,14 @@ import {
 	TableHeader,
 	TableRow,
 } from '@nextui-org/react'
-import PageWrapper from 'components/PageWrapper'
-import { ThemeToggle } from 'components/common/ThemeToggle'
+import { PageWrapper } from 'components/PageWrapper'
 import { Cell } from 'components/dashboard/Cell'
 import DashboardWrapper from 'components/dashboard/DashboardWrapper'
 import { Filters } from 'components/dashboard/Filters'
 import { request, useApi, useQueryParams } from 'core/client/api'
 import { useLogout } from 'core/client/auth'
 import { Desktop, Mobile, useBreakpoint } from 'core/client/components/MediaQuery'
+import { ThemeToggle } from 'core/client/components/ThemeToggle'
 import { auth } from 'core/server/auth'
 import type {
 	GetServerSidePropsContext,
@@ -127,7 +127,7 @@ const Dashboard = ({ username }: InferGetServerSidePropsType<typeof getServerSid
 					</Mobile>
 
 					{filtersOpen && (
-						<div className='flex flex-col desktop:hidden' style={{ gap: 15 }}>
+						<div className='flex flex-col desktop:hidden gap-[15px]'>
 							<Filters />
 						</div>
 					)}
@@ -138,7 +138,20 @@ const Dashboard = ({ username }: InferGetServerSidePropsType<typeof getServerSid
 				<Client>
 					<Table hideHeader={mobile} aria-label='Companies table'>
 						<TableHeader columns={responsiveColumns}>
-							{(column) => <TableColumn key={column.uid}>{column.name}</TableColumn>}
+							{(column) => (
+								<TableColumn
+									width={
+										column.uid === 'city'
+											? '25%'
+											: column.uid === 'categories'
+												? 310
+												: undefined
+									}
+									key={column.uid}
+								>
+									{column.name}
+								</TableColumn>
+							)}
 						</TableHeader>
 
 						<TableBody

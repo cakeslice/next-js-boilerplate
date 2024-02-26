@@ -1,5 +1,5 @@
 import { Button, Link } from '@nextui-org/react'
-import PageWrapper from 'components/PageWrapper'
+import { PageWrapper } from 'components/PageWrapper'
 import { useApi, useQueryParams } from 'core/client/api'
 import { Query, Response } from 'pages/api/hello'
 
