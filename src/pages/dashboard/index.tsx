@@ -111,7 +111,7 @@ const Dashboard = ({ username }: InferGetServerSidePropsType<typeof getServerSid
 						<div className='flex gap-3'>
 							<ThemeToggle />
 							<Button
-								color='primary'
+								className='d-button-primary'
 								onClick={async () => {
 									await sendData()
 									await refetch()
@@ -122,7 +122,12 @@ const Dashboard = ({ username }: InferGetServerSidePropsType<typeof getServerSid
 						</div>
 					</Desktop>
 					<Mobile>
-						<Button onClick={() => setFiltersOpen((o) => !o)}>Filters</Button>
+						<Button
+							className='d-button-secondary'
+							onClick={() => setFiltersOpen((o) => !o)}
+						>
+							Filters
+						</Button>
 						<ThemeToggle />
 					</Mobile>
 
