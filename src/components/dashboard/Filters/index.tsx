@@ -2,14 +2,14 @@ import { Checkbox, Chip } from '@nextui-org/react'
 import { useApi, useQueryParams } from 'core/client/api'
 import { Input } from 'core/client/components/Input'
 import { Response as CategoriesResponse } from 'pages/api/categories'
-import { Query as CompanyQuery } from 'pages/api/companies'
+import { QuerySchema as CompanySchema } from 'pages/api/companies'
 
 export const Filters = () => {
 	const { data: categories } = useApi<CategoriesResponse, undefined, {}>({
 		path: 'categories',
 	})
 
-	const { query, setQuery, queryReady } = useQueryParams<CompanyQuery>()
+	const { query, setQuery, queryReady } = useQueryParams(CompanySchema)
 
 	return (
 		<>
@@ -37,13 +37,7 @@ export const Filters = () => {
 							key={s.id}
 							defaultSelected={query.categories?.includes(s.name) || false}
 							onChange={(e) => {
-								// TODO: Maybe with zod?
-								// Otherwise we need to do Array.isArray everytime...
-								let array = Array.isArray(query.categories)
-									? query.categories
-									: query.categories
-										? [query.categories]
-										: []
+								let array = query.categories || []
 
 								if (e.currentTarget.checked) array.push(s.name)
 								else array = array.filter((e) => e !== s.name)

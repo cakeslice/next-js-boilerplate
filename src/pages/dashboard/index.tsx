@@ -24,7 +24,11 @@ import type {
 	InferGetServerSidePropsType,
 } from 'next'
 import { Body as AddDataBody } from 'pages/api/add-data'
-import { Response as CompaniesResponse, Query as CompanyQuery } from 'pages/api/companies'
+import {
+	Response as CompaniesResponse,
+	Query as CompanyQuery,
+	QuerySchema as CompanySchema,
+} from 'pages/api/companies'
 import { useMemo, useState } from 'react'
 import { Client } from 'react-hydration-provider'
 
@@ -64,7 +68,7 @@ export const getServerSideProps = async (
 const Dashboard = ({ username }: InferGetServerSidePropsType<typeof getServerSideProps>) => {
 	const [filtersOpen, setFiltersOpen] = useState(false)
 
-	const { query } = useQueryParams<CompanyQuery>()
+	const { query } = useQueryParams(CompanySchema)
 
 	const {
 		data: companies,

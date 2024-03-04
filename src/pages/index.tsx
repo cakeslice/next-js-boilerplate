@@ -1,7 +1,7 @@
 import { Button, Link } from '@nextui-org/react'
 import { PageWrapper } from 'components/PageWrapper'
 import { useApi, useQueryParams } from 'core/client/api'
-import { Query, Response } from 'pages/api/hello'
+import { Query, QuerySchema, Response } from 'pages/api/hello'
 
 import { auth } from 'core/server/auth'
 import type {
@@ -30,7 +30,7 @@ export const getServerSideProps = async (
 }
 
 const Page = ({ loggedIn, username }: InferGetServerSidePropsType<typeof getServerSideProps>) => {
-	const { query } = useQueryParams<Query>()
+	const { query } = useQueryParams(QuerySchema)
 
 	const { data } = useApi<Response, Query, {}>({
 		path: 'hello',

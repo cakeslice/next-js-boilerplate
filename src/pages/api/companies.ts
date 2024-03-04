@@ -2,11 +2,11 @@
 import type { Category, Company } from '@prisma/client'
 import prisma from 'core/server/prisma'
 import { NextApiRequestTyped } from 'core/server/types'
-import { zodQueryArray } from 'core/server/zod'
+import { validate, zodQueryArray } from 'core/server/zod'
 import type { NextApiResponse } from 'next'
 import { z } from 'zod'
 
-const QuerySchema = z.object({
+export const QuerySchema = z.object({
 	search: z.optional(z.string()),
 	categories: z.optional(zodQueryArray(z.string())),
 })
@@ -22,9 +22,8 @@ export default async function handler(
 	req: NextApiRequestTyped<Query>,
 	res: NextApiResponse<Response>
 ) {
-	// TODO: Move to middleware and also .setHeader('message', error...)
-	const query = QuerySchema.parse(req.query)
-	if (!query) return res.status(400).send(undefined)
+	const query = validate({ schema: QuerySchema, obj: req.query, res })
+	if (!query) return
 
 	const search = query.search
 	const categories = query.categories || []
