@@ -25,7 +25,7 @@ export const Filters = () => {
 						inputWrapper: 'd-input-primary',
 					}}
 					onChange={(e) => {
-						setQuery({ search: e })
+						setQuery({ search: e, page: 1 })
 					}}
 				/>
 			)}
@@ -42,7 +42,7 @@ export const Filters = () => {
 								if (e.currentTarget.checked) array.push(s.name)
 								else array = array.filter((e) => e !== s.name)
 
-								setQuery({ categories: array })
+								setQuery({ categories: array, page: 1 })
 							}}
 						>
 							<Chip variant='bordered' className={s.style}>

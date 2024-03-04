@@ -1,21 +1,21 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { Category, Company } from '@prisma/client'
-import prisma from 'core/server/prisma'
+import { PaginationResponse, getPaginationSchema, paginatePrisma } from 'core/server/pagination'
+import { prisma } from 'core/server/prisma'
 import { NextApiRequestTyped } from 'core/server/types'
 import { validate, zodQueryArray } from 'core/server/zod'
 import type { NextApiResponse } from 'next'
 import { z } from 'zod'
 
-export const QuerySchema = z.object({
-	search: z.optional(z.string()),
-	categories: z.optional(zodQueryArray(z.string())),
-})
+export const QuerySchema = z
+	.object({
+		search: z.optional(z.string()),
+		categories: z.optional(zodQueryArray(z.string())),
+	})
+	.and(getPaginationSchema())
 export type Query = z.infer<typeof QuerySchema>
 
 export type CompanyWithCategories = Company & { categories: Category[] }
-export type Response = CompanyWithCategories[] | undefined
-
-// TODO: Pagination & infinite loading for mobile (with scroll to top on page change) - Middleware
+export type Response = ({ companies: CompanyWithCategories[] } & PaginationResponse) | undefined
 
 // Next.js endpoints accept all HTTP methods (GET, POST...)
 export default async function handler(
@@ -28,7 +28,8 @@ export default async function handler(
 	const search = query.search
 	const categories = query.categories || []
 
-	const foundCompanies = await prisma.company.findMany({
+	const [foundCompanies, totalItems] = await prisma.company.findManyAndCount({
+		...paginatePrisma(query),
 		where: {
 			...(search && {
 				name: { contains: search?.toLowerCase(), mode: 'insensitive' },
@@ -54,10 +55,10 @@ export default async function handler(
 		},
 	})
 
-	let output: Response = foundCompanies.map((c) => ({
+	const companies = foundCompanies.map((c) => ({
 		...c,
 		categories: c.categories.map((cat) => cat.category),
 	}))
 
-	res.status(200).json(output)
+	res.status(200).json({ companies, totalItems })
 }

@@ -1,5 +1,5 @@
 import { Button, Link } from '@nextui-org/react'
-import PageWrapper from 'components/PageWrapper'
+import { PageWrapper } from 'components/PageWrapper'
 import { auth } from 'core/server/auth'
 
 import type { GetServerSidePropsContext, GetServerSidePropsResult } from 'next'

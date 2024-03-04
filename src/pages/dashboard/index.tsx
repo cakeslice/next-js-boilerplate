@@ -1,5 +1,6 @@
 import {
 	Button,
+	Pagination,
 	Spacer,
 	Spinner,
 	Table,
@@ -17,13 +18,14 @@ import { request, useApi, useQueryParams } from 'core/client/api'
 import { useLogout } from 'core/client/auth'
 import { Desktop, Mobile, useBreakpoint } from 'core/client/components/MediaQuery'
 import { ThemeToggle } from 'core/client/components/ThemeToggle'
+import { usePagination } from 'core/client/hooks'
 import { auth } from 'core/server/auth'
 import type {
 	GetServerSidePropsContext,
 	GetServerSidePropsResult,
 	InferGetServerSidePropsType,
 } from 'next'
-import { Body as AddDataBody } from 'pages/api/add-data'
+import { Body as AddDataBody, Response as AddDataResponse } from 'pages/api/add-data'
 import {
 	Response as CompaniesResponse,
 	Query as CompanyQuery,
@@ -68,19 +70,17 @@ export const getServerSideProps = async (
 const Dashboard = ({ username }: InferGetServerSidePropsType<typeof getServerSideProps>) => {
 	const [filtersOpen, setFiltersOpen] = useState(false)
 
-	const { query } = useQueryParams(CompanySchema)
+	const { query, setQuery } = useQueryParams(CompanySchema)
 
-	const {
-		data: companies,
-		refetch,
-		isLoading,
-	} = useApi<CompaniesResponse, CompanyQuery, {}>({
+	const { data, refetch, isLoading } = useApi<CompaniesResponse, CompanyQuery, {}>({
 		path: 'companies',
 		query,
 	})
 
+	const { companies, totalItems } = data || {}
+
 	const sendData = async () => {
-		const { error } = await request<{ helloSuccess: string }, {}, AddDataBody>({
+		const { result, error } = await request<AddDataResponse, {}, AddDataBody>({
 			path: 'add-data',
 			method: 'POST',
 			body: {
@@ -88,6 +88,7 @@ const Dashboard = ({ username }: InferGetServerSidePropsType<typeof getServerSid
 			},
 		})
 		if (error) alert(error.message)
+		else console.log('Message from server: ' + result?.message)
 	}
 
 	const { logout } = useLogout()
@@ -98,6 +99,8 @@ const Dashboard = ({ username }: InferGetServerSidePropsType<typeof getServerSid
 		() => columns.filter((c) => (mobile ? !c.desktop : !c.mobile)),
 		[mobile]
 	)
+
+	const { pages } = usePagination(data?.totalItems, 10)
 
 	return (
 		<PageWrapper>
@@ -145,7 +148,27 @@ const Dashboard = ({ username }: InferGetServerSidePropsType<typeof getServerSid
 				<Spacer y={5} />
 
 				<Client>
-					<Table hideHeader={mobile} aria-label='Companies table'>
+					<Table
+						bottomContent={
+							pages > 0 ? (
+								<div className='flex w-full justify-center'>
+									<Pagination
+										isCompact
+										showControls
+										showShadow
+										color='primary'
+										page={query.page || 1}
+										total={pages}
+										onChange={(page) => {
+											setQuery({ page }), window.scrollTo(0, 0)
+										}}
+									/>
+								</div>
+							) : null
+						}
+						hideHeader={mobile}
+						aria-label='Companies table'
+					>
 						<TableHeader columns={responsiveColumns}>
 							{(column) => (
 								<TableColumn

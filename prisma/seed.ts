@@ -1,5 +1,6 @@
-import { PrismaClient } from '@prisma/client'
-const prisma = new PrismaClient()
+import { createPrismaClient } from 'core/server/prisma'
+
+const prisma = createPrismaClient()
 
 const companyCategories: {
 	id?: number

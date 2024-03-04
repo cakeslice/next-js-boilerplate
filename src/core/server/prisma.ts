@@ -1,18 +1,37 @@
-import { PrismaClient } from '@prisma/client'
+import { Prisma, PrismaClient } from '@prisma/client'
+
+export const createPrismaClient = () =>
+	new PrismaClient().$extends({
+		name: 'findManyAndCount',
+		model: {
+			$allModels: {
+				findManyAndCount<Model, Args>(
+					this: Model,
+					args: Prisma.Exact<Args, Prisma.Args<Model, 'findMany'>>
+				): Promise<[Prisma.Result<Model, Args, 'findMany'>, number]> {
+					return prisma.$transaction([
+						(this as any).findMany(args),
+						(this as any).count({ where: (args as any).where }),
+					]) as any
+				},
+			},
+		},
+	})
+type ExtendedPrisma = ReturnType<typeof createPrismaClient>
 
 declare global {
-	var prisma: PrismaClient
+	var prisma: ExtendedPrisma
 }
 
-let prisma: PrismaClient
+export let prisma: ExtendedPrisma
 
-if (process.env.NODE_ENV === 'production') {
-	prisma = new PrismaClient()
-} else {
-	if (!global.prisma) {
-		global.prisma = new PrismaClient()
+if (typeof window === 'undefined') {
+	if (process.env.NODE_ENV === 'production') {
+		prisma = createPrismaClient()
+	} else {
+		if (!global.prisma) {
+			global.prisma = createPrismaClient()
+		}
+		prisma = global.prisma
 	}
-	prisma = global.prisma
 }
-
-export default prisma
