@@ -9,7 +9,11 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 module.exports = withPlugins([withBundleAnalyzer], {
 	output: process.env.STANDALONE ? 'standalone' : process.env.EXPORT ? 'export' : undefined,
 	reactStrictMode: true,
-	...(process.env.EXPORT === 'true' ? ['next-image-export-optimizer'] : []),
+	transpilePackages: [
+		'@uidotdev',
+		'@heroicons',
+		...(process.env.EXPORT === 'true' ? ['next-image-export-optimizer'] : []),
+	],
 	...(process.env.EXPORT === 'true' && {
 		images: {
 			loader: 'custom',
